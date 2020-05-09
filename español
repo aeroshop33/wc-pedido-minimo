@@ -1,0 +1,65 @@
+<?php
+add_action( 'woocommerce_check_cart_items', 'wc_pedido_minimo_function' );
+function wc_pedido_minimo_function() {
+	$pedido_minimo_onoff = get_option( 'wc-pedido-minimo-onoff', false );
+
+	$wc_pedido_minimo_get_current_role = wc_pedido_minimo_get_current_role();
+
+	$pedido_minimo_usuarios = get_option( 'wc-pedido-minimo-usuarios', false );
+
+	    if( (is_cart() || is_checkout()) && $pedido_minimo_onoff == 'yes' && ($pedido_minimo_usuarios == '' || $pedido_minimo_usuarios == $wc_pedido_minimo_get_current_role) ) {
+	        
+	        global $woocommerce;
+	 
+	        $total_carrinho_valor = WC()->cart->subtotal;
+	        $total_carrito_cantidad = WC()->cart->get_cart_contents_count();
+
+			$pedido_minimo_funcionamento = get_option( 'wc-pedido-minimo-funcionamento', false );
+			$pedido_minimo_valor = get_option( 'wc-pedido-minimo-valor', false );
+			$pedido_minimo_quantidade = get_option( 'wc-pedido-minimo-cantidad', false );
+
+	        if( $pedido_minimo_funcionamento == 'valor' ) {
+		        if( $total_carrito_valor < $pedido_minimo_valor ) {
+					$saldo = wc_price($pedido_minimo_valor - $total_carrito_valor);
+					$mensagem = '<p>'.esc_html__( 'Necesita comprar %s más para alcanzar el valor mínimo de la tienda.', 'wc-pedido-minimo').'</p></div>';
+
+					if ( $total_carrito_valor !== 0 ) {
+							$simbolo_moeda = get_woocommerce_currency_symbol();
+				            wc_add_notice( sprintf( '<div class="alerta_pedido_minimo"><p>'.esc_html__('O Pedido debe tener o valor mínimo de', 'wc-pedido-minimo').' <strong>'.$simbolo_moeda.' %s</strong>.</p>'.'<p>'.esc_html__('O Valor total de su pedido ahora es de', 'wc-pedido-minimo').' <strong> %s</strong>.</p>'.$mensagem, wc_price($pedido_minimo_valor), wc_price($total_carrito_valor), $saldo ), 'error' );
+					}
+	        	}
+    		} elseif( $pedido_minimo_funcionamento == 'cantidad' ) {
+		        if( $total_carrito_cantidad < $pedido_minimo_cantidad ) {
+					$saldo = $pedido_minimo_cantidad - $total_carrito_cantidad;
+					if ( $saldo == 1 ) {
+						$txtItem = 'item';
+					} elseif ($saldo > 1) {
+						$txtItem = 'itens';
+					}
+					$mensagem = '<p>'.esc_html__( 'Necesita comprar %s '.$txtItem.' para alcanzar el valor mínimo de la tienda.', 'wc-pedido-minimo').'</p></div>';
+
+					if ( $total_carrito_cantidad !== 0 ) {
+						if ( $total_carrito_cantidad== 1 ) {
+							$txtItem = 'item';
+						} else {
+							$txtItem = 'itens';
+						}
+
+				            wc_add_notice( sprintf( '<div class="alerta_pedido_minimo">
+				            	<p>'.esc_html__('O Pedido debe tener la cantidad mínima de', 'wc-pedido-minimo').' <strong>%s itens</strong>.</p>'.'<p>'.esc_html__('Su pedido ahora propio', 'wc-pedido-minimo').' <strong> %s '.$txtItem.'</strong>.</p>'.$mensagem, $pedido_minimo_quantidade, $total_carrito_quantidade, $saldo ), 'error' );
+					}
+	        	}
+    		}
+		}
+}
+
+
+function wc_pedido_minimo_get_current_role() {
+  if( is_user_logged_in() ) {
+    $user = wp_get_current_user();
+    $role = ( array ) $user->roles;
+    return $role[0];
+  } else {
+    return false;
+  }
+}
